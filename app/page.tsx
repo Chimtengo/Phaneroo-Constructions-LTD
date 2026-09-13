@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { getPublicContent, supabaseConfigured, type NewsPost, type Vacancy } from "@/lib/supabase-api";
 
 /* ── Scroll-reveal hook ── */
 function useReveal() {
@@ -47,17 +49,28 @@ function Reveal({ children, delay = 0, direction = "up" }: {
     right: "translateX(40px)", none: "none",
   };
   return (
-    <div
-      ref={ref}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "none" : transforms[direction],
-        transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms`,
-      }}
-    >
+    <div ref={ref} style={{
+      opacity: visible ? 1 : 0,
+      transform: visible ? "none" : transforms[direction],
+      transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms`,
+    }}>
       {children}
     </div>
   );
+}
+
+function ProductImages({ files, alt }: { files: string[]; alt: string }) {
+  const [activeImage, setActiveImage] = useState(0);
+
+  useEffect(() => {
+    if (files.length < 2) return;
+    const timer = window.setInterval(() => setActiveImage((current) => (current + 1) % files.length), 4200);
+    return () => window.clearInterval(timer);
+  }, [files.length]);
+
+  return <div className="product-images">
+    {files.map((file, index) => <Image key={file} src={`/images/${file}`} alt={index === activeImage ? alt : ""} aria-hidden={index !== activeImage} fill sizes="(max-width: 760px) 100vw, 50vw" className={index === activeImage ? "product-image active" : "product-image"} />)}
+  </div>;
 }
 
 /* ══════════════════════════════════
@@ -67,15 +80,32 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [activeNews, setActiveNews] = useState<"news" | "vacancies">("news");
+  const [newsItems, setNewsItems] = useState<NewsPost[]>([]);
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [contentError, setContentError] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 50);
-      setScrollY(window.scrollY);
-    };
+    const onScroll = () => { setScrolled(window.scrollY > 50); setScrollY(window.scrollY); };
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    if (!supabaseConfigured()) return;
+    getPublicContent()
+      .then(({ news, vacancies: publishedVacancies }) => {
+        setNewsItems(news);
+        setVacancies(publishedVacancies);
+      })
+      .catch(() => setContentError(true));
+  }, []);
+
+  const navLinks = [
+    ["#home", "Home"], ["#services", "Services"], ["#products", "Products"],
+    ["#milestones", "Milestones"], ["#news", "News"], ["#why", "Why Us"],
+    ["#team", "Team"], ["#contact", "Contact"],
+  ];
 
   const services = [
     { icon: "🏗️", title: "Building Services", desc: "From residential homes to large commercial and industrial structures — we manage every phase from foundation to finishing." },
@@ -84,11 +114,23 @@ export default function Home() {
     { icon: "💧", title: "Borehole Drilling", desc: "Professional borehole drilling and complete water installation services for residential, commercial and institutional clients." },
   ];
 
-  const projects = [
-    { title: "Dept. of Forestry", value: "MK 10M+", desc: "General building project for the Department of Forestry in Lilongwe.", img: "project1" },
-    { title: "Mwala CCAP Church", value: "MK 12M+", desc: "Supply of concrete blocks for church construction project.", img: "project2" },
-    { title: "Lilongwe City Council", value: "MK 162M+", desc: "Supply of 90,000+ concrete blocks for Chilinde Newlines Market.", img: "project3" },
-    { title: "Kabudula Pig Farm", value: "MK Multi-M", desc: "Construction of a livestock facility in Lilongwe District.", img: "project4" },
+  const milestones = [
+    { year: "2020", title: "Company Founded", desc: "Phaneroo Constructions Ltd was established in Lilongwe by Ranwell Fatsani Mwale with a vision to transform Malawi's construction sector.", icon: "🏛️" },
+    { year: "2021", title: "First Major Contract", desc: "Secured a 10M+ kwacha contract with the Department of Forestry, cementing our reputation for quality government work.", icon: "📋" },
+    { year: "2022", title: "Materials Division Launch", desc: "Expanded into manufacturing — launching our concrete blocks and interlocking pavers production line to become a one-stop construction shop.", icon: "🧱" },
+    { year: "2023", title: "Church Partnership", desc: "Awarded a 12M+ kwacha concrete block supply contract with Mwala CCAP Church, Chilinde Lilongwe.", icon: "⛪" },
+    { year: "2024", title: "Kabudula Pig Farm", desc: "Completed a multi-million kwacha livestock facility construction project at Kabudula in Lilongwe District.", icon: "🏗️" },
+    { year: "2025", title: "City Council Mega Deal", desc: "Secured a landmark 162M+ kwacha contract with Lilongwe City Council to supply 90,000+ blocks for Chilinde Newlines Market.", icon: "🏆" },
+  ];
+
+  /* ── Team: update names, roles and image filenames when ready ── */
+  const team = [
+    { name: "Ranwell Fatsani", role: "Chief Executive Officer", img: "Ranwell Fatsani.jpeg", position: "center top" },
+    { name: "Brian Zulanga", role: "Team Member", img: "Brian Zulanga.jpeg", position: "center 70%" },
+    { name: "Enerst Mphande", role: "Team Member", img: "Enerst Mphande.jpeg", position: "center 70%" },
+    { name: "Grace Kanjeza", role: "Team Member", img: "Grace Kanjeza.jpeg", position: "center top" },
+    { name: "Tracina", role: "Team Member", img: "Tracina.jpg", position: "center top" },
+    { name: "Uchizi Nkhoma", role: "Team Member", img: "Uchizi Nkhoma.jpeg", position: "center top" },
   ];
 
   const whyItems = [
@@ -109,44 +151,43 @@ export default function Home() {
         }
         body { font-family:'Segoe UI',system-ui,sans-serif; color:var(--charcoal); background:var(--white); margin:0; }
 
-        /* NAV */
+        /* ── NAV ── */
         nav {
           position:fixed; top:0; left:0; right:0; z-index:200;
           display:flex; align-items:center; justify-content:space-between;
           padding:1.25rem 2rem;
           transition:background 0.4s, padding 0.4s, box-shadow 0.4s;
         }
-        nav.scrolled { background:var(--navy); padding:0.75rem 2rem; box-shadow:0 2px 24px rgba(0,0,0,0.35); }
+        nav.scrolled { background:var(--navy); padding:0.7rem 2rem; box-shadow:0 2px 24px rgba(0,0,0,0.35); }
         .nav-logo { display:flex; align-items:center; text-decoration:none; }
-        .nav-links { display:flex; gap:2rem; list-style:none; margin:0; padding:0; }
+        .nav-links { display:flex; gap:1.5rem; list-style:none; margin:0; padding:0; }
         .nav-links a {
           color:rgba(255,255,255,0.85); text-decoration:none;
-          font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+          font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em;
           transition:color 0.2s; position:relative; padding-bottom:3px;
         }
         .nav-links a::after { content:''; position:absolute; bottom:0; left:0; width:0; height:2px; background:var(--red); transition:width 0.3s; }
         .nav-links a:hover { color:white; }
         .nav-links a:hover::after { width:100%; }
-        .nav-cta { background:var(--red) !important; color:white !important; padding:0.5rem 1.25rem !important; border-radius:4px; }
+        .nav-cta { background:var(--red) !important; color:white !important; padding:0.45rem 1.1rem !important; border-radius:4px; }
         .nav-cta::after { display:none !important; }
         .nav-cta:hover { background:#a50019 !important; }
         .hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; background:none; border:none; padding:4px; }
         .hamburger span { width:26px; height:2px; background:white; display:block; }
-        .mobile-menu { display:none; position:fixed; inset:0; background:var(--navy); z-index:199; flex-direction:column; align-items:center; justify-content:center; gap:2.5rem; }
+        .mobile-menu { display:none; position:fixed; inset:0; background:var(--navy); z-index:199; flex-direction:column; align-items:center; justify-content:center; gap:2rem; overflow-y:auto; }
         .mobile-menu.open { display:flex; animation:fadeIn 0.3s ease; }
-        .mobile-menu a { color:white; text-decoration:none; font-size:1.6rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; }
+        .mobile-menu a { color:white; text-decoration:none; font-size:1.4rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; }
         .mobile-close { position:absolute; top:1.5rem; right:2rem; background:none; border:none; color:white; font-size:2rem; cursor:pointer; }
 
-        /* HERO */
+        /* ── HERO ── */
         .hero { min-height:100vh; position:relative; overflow:hidden; display:flex; align-items:center; }
         .hero-bg { position:absolute; inset:0; z-index:0; }
-        .hero-bg img { width:100%; height:100%; object-fit:cover; object-position:center; }
-        .hero-overlay { position:absolute; inset:0; z-index:1; background:linear-gradient(135deg, rgba(10,20,40,0.92) 40%, rgba(10,20,40,0.65) 100%); }
+        .hero-overlay { position:absolute; inset:0; z-index:1; background:linear-gradient(135deg, rgba(10,20,40,0.93) 40%, rgba(10,20,40,0.6) 100%); }
         .hero-slash { position:absolute; bottom:-2px; left:0; right:0; height:80px; z-index:3; background:white; clip-path:polygon(0 100%,100% 0,100% 100%); }
         .hero-content { position:relative; z-index:4; max-width:1200px; margin:0 auto; padding:9rem 2rem 7rem; width:100%; }
         .hero-eyebrow { display:inline-flex; align-items:center; gap:0.75rem; color:var(--red); font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.18em; margin-bottom:1.75rem; animation:slideRight 0.8s ease both; }
         .hero-eyebrow::before { content:''; width:36px; height:2px; background:var(--red); }
-        h1 { font-size:clamp(3rem,7.5vw,6rem); font-weight:900; color:white; line-height:0.95; text-transform:uppercase; letter-spacing:-0.02em; margin-bottom:1.5rem; animation:slideUp 0.9s ease 0.2s both; }
+        h1 { font-size:clamp(2.8rem,7vw,5.8rem); font-weight:900; color:white; line-height:0.95; text-transform:uppercase; letter-spacing:-0.02em; margin-bottom:1.5rem; animation:slideUp 0.9s ease 0.2s both; }
         h1 em { color:var(--red); font-style:normal; display:block; }
         .hero-sub { color:rgba(255,255,255,0.65); font-size:1.05rem; max-width:500px; line-height:1.75; margin-bottom:2.5rem; animation:slideUp 0.9s ease 0.4s both; }
         .hero-btns { display:flex; gap:1rem; flex-wrap:wrap; animation:slideUp 0.9s ease 0.6s both; }
@@ -154,33 +195,33 @@ export default function Home() {
         .hero-badge strong { display:block; color:var(--red); font-size:2rem; font-weight:900; }
         .hero-badge span { color:rgba(255,255,255,0.5); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em; }
 
-        /* BUTTONS */
+        /* ── BUTTONS ── */
         .btn-primary { background:var(--red); color:white; padding:1rem 2rem; border-radius:4px; font-weight:700; font-size:0.88rem; text-transform:uppercase; letter-spacing:0.08em; text-decoration:none; display:inline-flex; align-items:center; gap:0.5rem; transition:transform 0.25s, box-shadow 0.25s, background 0.25s; }
         .btn-primary:hover { transform:translateY(-3px); box-shadow:0 10px 28px rgba(200,0,30,0.45); background:#a50019; }
         .btn-outline { border:2px solid rgba(255,255,255,0.4); color:white; padding:1rem 2rem; border-radius:4px; font-weight:700; font-size:0.88rem; text-transform:uppercase; letter-spacing:0.08em; text-decoration:none; display:inline-block; transition:border-color 0.25s, background 0.25s, transform 0.25s; }
         .btn-outline:hover { border-color:white; background:rgba(255,255,255,0.1); transform:translateY(-3px); }
 
-        /* STATS */
+        /* ── STATS ── */
         .stats { background:white; border-bottom:1px solid var(--light); padding:4rem 2rem; }
-        .stats-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:2rem; text-align:center; }
+        .stats-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:2rem; text-align:center; }
         .stat-item { padding:1.5rem; position:relative; }
         .stat-item:not(:last-child)::after { content:''; position:absolute; right:0; top:20%; height:60%; width:1px; background:var(--light); }
-        .stat-num { font-size:clamp(2.5rem,5vw,3.8rem); font-weight:900; color:var(--navy); line-height:1; }
+        .stat-num { font-size:clamp(2rem,4vw,3.5rem); font-weight:900; color:var(--navy); line-height:1; }
         .stat-num em { color:var(--red); font-style:normal; }
-        .stat-label { font-size:0.73rem; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:var(--gray); margin-top:0.5rem; }
+        .stat-label { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:var(--gray); margin-top:0.5rem; }
 
-        /* COMMON SECTION */
+        /* ── COMMON ── */
         section { padding:6rem 2rem; }
         .section-inner { max-width:1200px; margin:0 auto; }
         .section-tag { display:inline-flex; align-items:center; gap:0.6rem; color:var(--red); font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.18em; margin-bottom:0.75rem; }
         .section-tag::before { content:''; width:28px; height:2px; background:var(--red); }
-        h2 { font-size:clamp(2rem,4vw,3rem); font-weight:900; color:var(--navy); text-transform:uppercase; line-height:1.05; letter-spacing:-0.01em; }
+        h2 { font-size:clamp(1.8rem,3.5vw,2.8rem); font-weight:900; color:var(--navy); text-transform:uppercase; line-height:1.05; letter-spacing:-0.01em; }
+        .section-sub { color:var(--gray); margin-top:0.75rem; max-width:580px; line-height:1.75; }
 
-        /* ABOUT */
+        /* ── ABOUT ── */
         .about { background:var(--concrete); }
         .about-grid { display:grid; grid-template-columns:1fr 1fr; gap:5rem; align-items:center; }
-        .about-text h2 { margin-bottom:1.5rem; }
-        .about-text p { color:var(--gray); line-height:1.85; margin-bottom:1rem; }
+        .about-text p { color:var(--gray); line-height:1.85; margin-bottom:1rem; margin-top:1.25rem; }
         .values-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:2rem; }
         .value-chip { background:var(--navy); color:white; padding:0.6rem 1rem; border-radius:4px; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; text-align:center; border-left:3px solid var(--red); transition:transform 0.2s, box-shadow 0.2s; }
         .value-chip:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(26,43,74,0.2); }
@@ -193,7 +234,7 @@ export default function Home() {
         .about-card h3 { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--red); margin-bottom:0.35rem; }
         .about-card p { font-size:1rem; font-weight:800; line-height:1.3; }
 
-        /* SERVICES */
+        /* ── SERVICES ── */
         .services { background:white; }
         .services-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1.5rem; margin-top:3rem; }
         .service-card { border:2px solid var(--light); border-radius:10px; padding:2.25rem; transition:all 0.35s; cursor:default; position:relative; overflow:hidden; background:white; }
@@ -204,82 +245,91 @@ export default function Home() {
         .service-card h3 { font-size:1rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--navy); margin-bottom:0.75rem; }
         .service-card p { color:var(--gray); line-height:1.75; font-size:0.9rem; }
 
-        /* PRODUCTS */
+        /* ── PRODUCTS ── */
         .products { background:var(--navy); }
         .products .section-tag { color:var(--red); }
         .products-intro { color:rgba(255,255,255,0.5); margin-top:0.5rem; margin-bottom:3rem; }
         .products-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1.5rem; }
         .product-card { position:relative; border-radius:10px; overflow:hidden; height:360px; cursor:default; }
-        .product-card img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.6s ease; }
-        .product-card:hover img { transform:scale(1.08); }
-        .product-overlay {
-          position:absolute; inset:0;
-          background:linear-gradient(to top, rgba(10,20,40,0.95) 0%, rgba(10,20,40,0.4) 55%, rgba(10,20,40,0.05) 100%);
-          display:flex; flex-direction:column; justify-content:flex-end; padding:2rem;
-          transition:background 0.4s ease;
-        }
-        .product-card:hover .product-overlay {
-          background:linear-gradient(to top, rgba(200,0,30,0.92) 0%, rgba(26,43,74,0.82) 60%, rgba(10,20,40,0.2) 100%);
-        }
-        .product-overlay-icon {
-          font-size:2.5rem; margin-bottom:0.75rem;
-          opacity:0; transform:translateY(12px);
-          transition:opacity 0.4s ease 0.05s, transform 0.4s ease 0.05s;
-        }
-        .product-card:hover .product-overlay-icon { opacity:1; transform:translateY(0); }
-        .product-overlay h3 {
-          color:white; font-size:1.2rem; font-weight:900;
-          text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.5rem;
-          transform:translateY(8px); transition:transform 0.4s ease;
-        }
+        .product-images { position:absolute; inset:0; overflow:hidden; }
+        .product-image { object-fit:cover; opacity:0; transform:scale(1); transition:opacity 0.8s ease, transform 0.6s ease; }
+        .product-image.active { opacity:1; }
+        .product-card:hover .product-image.active { transform:scale(1.05); }
+        .product-overlay { position:absolute; inset:0; background:linear-gradient(to top, rgba(10,20,40,0.95) 0%, rgba(10,20,40,0.4) 55%, rgba(10,20,40,0.05) 100%); display:flex; flex-direction:column; justify-content:flex-end; padding:2rem; transition:background 0.4s ease; }
+        .product-card:hover .product-overlay { background:linear-gradient(to top, rgba(10,20,40,0.94) 0%, rgba(10,20,40,0.42) 52%, transparent 80%); }
+        .product-overlay h3 { color:white; font-size:1.2rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.5rem; transform:translateY(8px); transition:transform 0.4s ease; }
         .product-card:hover .product-overlay h3 { transform:translateY(0); }
-        .product-overlay p {
-          color:rgba(255,255,255,0.8); font-size:0.85rem; line-height:1.6; max-width:340px;
-          opacity:0; transform:translateY(10px);
-          transition:opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
-        }
+        .product-overlay p { color:rgba(255,255,255,0.8); font-size:0.85rem; line-height:1.6; max-width:340px; opacity:0; transform:translateY(10px); transition:opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s; }
         .product-card:hover .product-overlay p { opacity:1; transform:translateY(0); }
 
-        /* PROJECTS */
-        .projects { background:var(--concrete); }
-        .projects-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1.5rem; margin-top:3rem; }
-        .project-card { position:relative; border-radius:10px; overflow:hidden; height:340px; cursor:default; box-shadow:0 4px 20px rgba(26,43,74,0.12); }
-        .project-card img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.6s ease; }
-        .project-card:hover img { transform:scale(1.08); }
-        .project-overlay {
-          position:absolute; inset:0;
-          background:linear-gradient(to top, rgba(10,20,40,0.95) 0%, rgba(10,20,40,0.4) 55%, rgba(10,20,40,0.05) 100%);
-          display:flex; flex-direction:column; justify-content:flex-end; padding:2rem;
-          transition:background 0.4s ease;
-        }
-        .project-card:hover .project-overlay {
-          background:linear-gradient(to top, rgba(26,43,74,0.97) 0%, rgba(26,43,74,0.8) 55%, rgba(10,20,40,0.2) 100%);
-        }
-        .project-value {
-          font-size:2rem; font-weight:900; color:var(--red); line-height:1;
-          transform:translateY(6px); transition:transform 0.4s ease;
-        }
-        .project-card:hover .project-value { transform:translateY(0); }
-        .project-overlay h3 {
-          color:white; font-size:0.88rem; font-weight:800;
-          text-transform:uppercase; letter-spacing:0.06em;
-          margin-top:0.4rem; margin-bottom:0;
-          transform:translateY(6px); transition:transform 0.4s ease 0.05s;
-        }
-        .project-card:hover .project-overlay h3 { transform:translateY(0); }
-        .project-overlay p {
-          color:rgba(255,255,255,0.72); font-size:0.84rem; line-height:1.65;
-          margin-top:0.6rem; max-width:340px;
-          opacity:0; transform:translateY(12px);
-          transition:opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
-        }
-        .project-card:hover .project-overlay p { opacity:1; transform:translateY(0); }
+        /* ── MILESTONES ── */
+        .milestones { background:var(--concrete); }
+        .timeline { position:relative; margin-top:3.5rem; }
+        .timeline::before { content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; background:linear-gradient(to bottom, var(--red), var(--navy)); transform:translateX(-50%); }
+        .timeline-item { display:grid; grid-template-columns:1fr 60px 1fr; gap:0; margin-bottom:3rem; align-items:start; }
+        .timeline-item.timeline-left .timeline-content { grid-column:1; text-align:right; padding-right:2.5rem; }
+        .timeline-item.timeline-left .timeline-spacer { grid-column:3; }
+        .timeline-item.timeline-right .timeline-content { grid-column:3; text-align:left; padding-left:2.5rem; }
+        .timeline-item.timeline-right .timeline-spacer { grid-column:1; }
+        .timeline-dot { grid-column:2; display:flex; flex-direction:column; align-items:center; gap:0.5rem; position:relative; z-index:2; }
+        .timeline-dot-inner { width:48px; height:48px; border-radius:50%; background:var(--navy); border:3px solid var(--red); display:flex; align-items:center; justify-content:center; font-size:1.2rem; box-shadow:0 4px 16px rgba(200,0,30,0.3); transition:transform 0.3s, box-shadow 0.3s; flex-shrink:0; }
+        .timeline-item:hover .timeline-dot-inner { transform:scale(1.15); box-shadow:0 6px 24px rgba(200,0,30,0.5); }
+        .timeline-year { font-size:0.7rem; font-weight:800; color:var(--red); text-transform:uppercase; letter-spacing:0.1em; }
+        .timeline-content { background:white; border-radius:10px; padding:1.5rem 1.75rem; box-shadow:0 4px 20px rgba(26,43,74,0.08); transition:transform 0.3s, box-shadow 0.3s; }
+        .timeline-item:hover .timeline-content { transform:translateY(-3px); box-shadow:0 10px 32px rgba(26,43,74,0.14); }
+        .timeline-content h3 { font-size:0.95rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--navy); margin-bottom:0.5rem; }
+        .timeline-content p { color:var(--gray); font-size:0.87rem; line-height:1.7; margin:0; }
 
-        /* WHY */
-        .why { background:white; }
+        /* ── FIXED IMAGE BREAK ── */
+        .fixed-image-break { min-height:360px; position:relative; display:grid; place-items:center; text-align:center; padding:4rem 1.5rem; background-image:linear-gradient(rgba(10,22,43,0.76), rgba(10,22,43,0.76)), url('/images/blocks.jpg'); background-size:cover; background-position:center; background-attachment:fixed; }
+        .fixed-image-break-content { max-width:680px; color:white; }
+        .fixed-image-break .section-tag { color:#fff; }
+        .fixed-image-break .section-tag::before { background:var(--red); }
+        .fixed-image-break h2 { color:white; margin:0.75rem 0 1rem; }
+        .fixed-image-break p { color:rgba(255,255,255,0.82); font-size:1.05rem; line-height:1.75; margin:0; }
+
+        /* ── NEWS / VACANCIES ── */
+        .news { background:white; }
+        .news-tabs { display:flex; gap:0; margin-top:2rem; margin-bottom:3rem; border:2px solid var(--light); border-radius:8px; overflow:hidden; width:fit-content; }
+        .news-tab { padding:0.75rem 2rem; font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; cursor:pointer; border:none; background:transparent; color:var(--gray); transition:all 0.25s; }
+        .news-tab.active { background:var(--navy); color:white; }
+        .news-tab:hover:not(.active) { background:var(--light); color:var(--navy); }
+        .news-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; }
+        .news-card { border:2px solid var(--light); border-radius:10px; overflow:hidden; transition:all 0.3s; }
+        .news-card:hover { border-color:var(--navy); transform:translateY(-4px); box-shadow:0 12px 36px rgba(26,43,74,0.1); }
+        .news-img { height:180px; background:linear-gradient(135deg, var(--navy), #2d3f5f); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+        .news-img.has-image { background-size:cover; background-position:center; }
+        .news-img.has-image .news-img-placeholder { display:none; }
+        .news-img-placeholder { display:flex; flex-direction:column; align-items:center; gap:0.5rem; }
+        .news-img-placeholder span { font-size:2.5rem; opacity:0.4; }
+        .news-img-placeholder p { color:rgba(255,255,255,0.35); font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; margin:0; }
+        .news-body { padding:1.5rem; }
+        .news-meta { display:flex; gap:0.75rem; align-items:center; margin-bottom:0.75rem; }
+        .news-tag { background:var(--red); color:white; font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; padding:0.2rem 0.6rem; border-radius:3px; }
+        .news-date { color:var(--gray); font-size:0.75rem; }
+        .news-link { display:inline-block; color:var(--red); font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; text-decoration:none; margin-top:1rem; }
+        .news-link:hover { color:var(--navy); }
+        .news-card h3 { font-size:0.95rem; font-weight:800; color:var(--navy); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.6rem; }
+        .news-card p { color:var(--gray); font-size:0.85rem; line-height:1.7; }
+        .vacancies-list { display:flex; flex-direction:column; gap:1.25rem; }
+        .vacancy-card { border:2px solid var(--light); border-radius:10px; padding:1.75rem 2rem; display:grid; grid-template-columns:1fr auto; gap:1.5rem; align-items:center; transition:all 0.3s; }
+        .vacancy-card:hover { border-color:var(--red); box-shadow:0 8px 28px rgba(26,43,74,0.1); transform:translateX(4px); }
+        .vacancy-card h3 { font-size:1rem; font-weight:800; color:var(--navy); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; }
+        .vacancy-card p { color:var(--gray); font-size:0.87rem; line-height:1.65; margin:0; }
+        .vacancy-meta { display:flex; gap:0.5rem; margin-top:0.6rem; flex-wrap:wrap; }
+        .vacancy-pill { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; padding:0.25rem 0.7rem; border-radius:20px; }
+        .vacancy-pill.type { background:rgba(26,43,74,0.08); color:var(--navy); }
+        .vacancy-pill.location { background:rgba(200,0,30,0.08); color:var(--red); }
+        .vacancy-btn { background:var(--navy); color:white; border:none; padding:0.75rem 1.5rem; border-radius:6px; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; cursor:pointer; white-space:nowrap; transition:background 0.2s, transform 0.2s; flex-shrink:0; }
+        .vacancy-btn:hover { background:var(--red); transform:scale(1.03); }
+        .vacancy-actions { display:flex; flex-direction:column; gap:0.6rem; align-items:stretch; }
+        .coming-soon-note { text-align:center; padding:1rem; color:var(--gray); font-size:0.82rem; margin-top:1.5rem; font-style:italic; }
+
+        /* ── WHY ── */
+        .why { background:var(--concrete); }
         .why-grid { display:grid; grid-template-columns:1fr 1fr; gap:5rem; align-items:center; }
         .why-list { list-style:none; display:flex; flex-direction:column; gap:1rem; padding:0; }
-        .why-item { display:flex; gap:1rem; align-items:flex-start; background:var(--concrete); border-radius:8px; padding:1.25rem 1.5rem; border-left:4px solid var(--red); transition:transform 0.25s, box-shadow 0.25s; }
+        .why-item { display:flex; gap:1rem; align-items:flex-start; background:white; border-radius:8px; padding:1.25rem 1.5rem; border-left:4px solid var(--red); transition:transform 0.25s, box-shadow 0.25s; }
         .why-item:hover { transform:translateX(6px); box-shadow:0 6px 20px rgba(26,43,74,0.1); }
         .why-check { color:var(--red); font-size:1.1rem; flex-shrink:0; margin-top:0.1rem; font-weight:900; }
         .why-item strong { color:var(--navy); display:block; font-size:0.87rem; margin-bottom:0.2rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; }
@@ -291,7 +341,25 @@ export default function Home() {
         .tagline-badge { margin-top:1.75rem; background:var(--red); display:inline-block; padding:0.6rem 1.5rem; color:white; font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; border-radius:4px; }
         .why-logo-wrap { margin-top:2rem; padding-top:2rem; border-top:1px solid rgba(255,255,255,0.1); }
 
-        /* CONTACT */
+        /* ── TEAM ── */
+        .team { background:var(--navy); }
+        .team .section-tag { color:var(--red); }
+        .team h2 { color:white; }
+        .team-sub { color:rgba(255,255,255,0.5); margin-top:0.75rem; margin-bottom:3rem; }
+        .team-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.75rem; }
+        .team-card { position:relative; border-radius:12px; overflow:hidden; aspect-ratio:3/4; cursor:default; }
+        .team-card img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.6s ease; filter:grayscale(20%); }
+        .team-card:hover img { transform:scale(1.06); filter:grayscale(0%); }
+        .team-overlay { position:absolute; inset:0; background:linear-gradient(to top, rgba(10,20,40,0.97) 0%, rgba(10,20,40,0.5) 45%, transparent 75%); display:flex; flex-direction:column; justify-content:flex-end; padding:1.75rem; transition:background 0.4s; }
+        .team-card:hover .team-overlay { background:linear-gradient(to top, rgba(10,20,40,0.94) 0%, rgba(10,20,40,0.42) 52%, transparent 80%); }
+        .team-role { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--red); margin-bottom:0.35rem; transition:color 0.3s; }
+        .team-card:hover .team-role { color:rgba(255,255,255,0.7); }
+        .team-name { font-size:1.05rem; font-weight:800; color:white; line-height:1.2; }
+        /* Placeholder state when no real photo yet */
+        .team-photo-placeholder { width:100%; height:100%; background:linear-gradient(135deg, #1a2b4a 0%, #243650 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.75rem; }
+        .team-avatar-ring { width:80px; height:80px; border-radius:50%; border:3px solid rgba(200,0,30,0.5); display:flex; align-items:center; justify-content:center; font-size:2rem; color:rgba(255,255,255,0.25); }
+
+        /* ── CONTACT ── */
         .contact { background:var(--concrete); }
         .contact-grid { display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:start; }
         .contact h2 { margin-bottom:1rem; }
@@ -313,7 +381,7 @@ export default function Home() {
         .fb-link { display:inline-flex; align-items:center; gap:0.4rem; color:rgba(26,43,74,0.65); text-decoration:none; font-size:0.85rem; margin-top:1rem; transition:color 0.2s; font-weight:600; }
         .fb-link:hover { color:var(--red); }
 
-        /* FOOTER */
+        /* ── FOOTER ── */
         footer { background:var(--charcoal); color:rgba(255,255,255,0.55); padding:3.5rem 2rem; }
         .footer-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr; gap:3rem; padding-bottom:2rem; border-bottom:1px solid rgba(255,255,255,0.08); }
         .footer-brand p { font-size:0.87rem; line-height:1.75; max-width:300px; margin-top:1rem; }
@@ -325,77 +393,80 @@ export default function Home() {
         .footer-bottom span { color:var(--red); font-weight:700; }
         .reg-info { opacity:0.4; font-size:0.72rem; }
 
-        /* KEYFRAMES */
+        /* ── KEYFRAMES ── */
         @keyframes slideUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:none; } }
         @keyframes slideRight { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:none; } }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
-        /* MOBILE */
-        @media (max-width:768px) {
+        /* ── MOBILE ── */
+        @media (max-width:900px) {
           .nav-links { display:none; }
           .hamburger { display:flex; }
           .hero-badge { display:none; }
-          .about-grid, .services-grid, .products-grid, .projects-grid, .why-grid, .contact-grid { grid-template-columns:1fr; gap:2.5rem; }
+          .about-grid, .services-grid, .products-grid, .why-grid, .contact-grid { grid-template-columns:1fr; gap:2.5rem; }
           .about-img-wrap { padding-bottom:1rem; padding-right:0; }
           .about-card { position:static; margin-top:1rem; }
           .about-accent { display:none; }
-          .stats-inner { grid-template-columns:1fr; }
-          .stat-item::after { display:none; }
+          .stats-inner { grid-template-columns:repeat(2,1fr); }
+          .stat-item:nth-child(2)::after { display:none; }
+          .team-grid { grid-template-columns:repeat(2,1fr); }
+          .news-grid { grid-template-columns:1fr; }
+          .timeline::before { left:20px; }
+          .timeline-item { grid-template-columns:40px 1fr; }
+          .timeline-item.timeline-left .timeline-content,
+          .timeline-item.timeline-right .timeline-content { grid-column:2; text-align:left; padding-left:1.5rem; padding-right:0; }
+          .timeline-item.timeline-left .timeline-spacer,
+          .timeline-item.timeline-right .timeline-spacer { display:none; }
+          .timeline-dot { grid-column:1; }
+          .timeline-dot-inner { width:40px; height:40px; font-size:1rem; }
+          .fixed-image-break { min-height:280px; background-attachment:scroll; }
+          .vacancy-card { grid-template-columns:1fr; }
           .footer-inner { grid-template-columns:1fr; gap:2rem; }
           .footer-bottom { flex-direction:column; gap:0.5rem; text-align:center; }
           section { padding:4rem 1.5rem; }
-          h1 { font-size:2.6rem; }
+          h1 { font-size:2.4rem; }
           .hero-content { padding:7rem 1.5rem 5rem; }
           .product-card { height:280px; }
-          .project-card { height:260px; }
+        }
+        @media (max-width:600px) {
+          .stats-inner { grid-template-columns:1fr; }
+          .stat-item::after { display:none; }
+          .team-grid { grid-template-columns:1fr; }
         }
       `}</style>
 
-      {/* ── NAV ── */}
+      {/* ══ NAV ══ */}
       <nav className={scrolled ? "scrolled" : ""}>
         <a href="#home" className="nav-logo">
-          <Image
-            src="/logo.jpg"
-            alt="Phaneroo Constructions Ltd"
-            width={140} height={44} priority
-            style={{ height:44, width:"auto", filter:"brightness(0) invert(1)" }}
-          />
+          <Image src="/logo-red-white.png" alt="Phaneroo Constructions Ltd" width={58} height={59} priority />
         </a>
         <ul className="nav-links">
-          {[["#about","About"],["#services","Services"],["#products","Products"],["#projects","Projects"],["#why","Why Us"]].map(([h,l]) => (
-            <li key={h}><a href={h}>{l}</a></li>
+          {navLinks.map(([h,l]) => (
+            <li key={h}><a href={h} className={h === "#contact" ? "nav-cta" : ""}>{l}</a></li>
           ))}
-          <li><a href="#contact" className="nav-cta">Contact Us</a></li>
         </ul>
         <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Open menu">
           <span /><span /><span />
         </button>
       </nav>
 
-      {/* ── MOBILE MENU ── */}
+      {/* ══ MOBILE MENU ══ */}
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
         <button className="mobile-close" onClick={() => setMenuOpen(false)}>✕</button>
-        {[["#about","About"],["#services","Services"],["#products","Products"],["#projects","Projects"],["#why","Why Us"],["#contact","Contact"]].map(([h,l]) => (
+        {navLinks.map(([h,l]) => (
           <a key={h} href={h} onClick={() => setMenuOpen(false)}>{l}</a>
         ))}
       </div>
 
-      {/* ── HERO ── */}
+      {/* ══ HERO ══ */}
       <section className="hero" id="home">
         <div className="hero-bg">
-          <Image
-            src="/images/hero.jpeg"
-            alt="Phaneroo Constructions"
-            fill priority
-            style={{ objectFit:"cover", objectPosition:"center" }}
-          />
+          <Image src="/images/hero.jpeg" alt="Phaneroo Constructions" fill priority
+            style={{ objectFit:"cover", objectPosition:"center" }} />
         </div>
         <div className="hero-overlay" />
-
-        {/* Parallax stripes */}
-        <div style={{ position:"absolute", top:0, right:"8%", width:3, bottom:0, zIndex:3, background:"var(--red)", opacity:0.5, transform:`translateY(${scrollY * 0.12}px)`, transition:"transform 0.05s linear" }} />
-        <div style={{ position:"absolute", top:0, right:"13%", width:1, bottom:0, zIndex:3, background:"rgba(255,255,255,0.07)", transform:`translateY(${scrollY * 0.07}px)`, transition:"transform 0.05s linear" }} />
-
+        <div style={{ position:"absolute", top:0, right:"8%", width:3, bottom:0, zIndex:3, background:"var(--red)", opacity:0.5, transform:`translateY(${scrollY*0.12}px)`, transition:"transform 0.05s linear" }} />
+        <div style={{ position:"absolute", top:0, right:"13%", width:1, bottom:0, zIndex:3, background:"rgba(255,255,255,0.07)", transform:`translateY(${scrollY*0.07}px)`, transition:"transform 0.05s linear" }} />
         <div className="hero-content">
           <div className="hero-eyebrow">Est. 2020 — Lilongwe, Malawi</div>
           <h1>Make Your<br /><em>Vision</em>Possible.</h1>
@@ -408,21 +479,20 @@ export default function Home() {
             <a href="#services" className="btn-outline">Our Services</a>
           </div>
         </div>
-
         <div className="hero-badge">
           <strong>MK 162M+</strong>
           <span>Largest Contract</span>
         </div>
-
         <div className="hero-slash" />
       </section>
 
-      {/* ── STATS ── */}
+      {/* ══ STATS ══ */}
       <div className="stats">
         <div className="stats-inner">
           {[
             { target:50, suffix:"+", label:"Projects Completed" },
             { target:162, suffix:"M+", label:"MK Largest Contract" },
+            { target:90000, suffix:"+", label:"Blocks Supplied" },
             { target:5, suffix:"+ yrs", label:"Industry Experience" },
           ].map((s) => (
             <Reveal key={s.label} direction="up">
@@ -435,7 +505,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── ABOUT ── */}
+      {/* ══ ABOUT ══ */}
       <section className="about" id="about">
         <div className="section-inner">
           <div className="about-grid">
@@ -443,16 +513,8 @@ export default function Home() {
               <div className="about-text">
                 <div className="section-tag">About Us</div>
                 <h2>Building More Than Structures</h2>
-                <p style={{marginTop:"1.25rem"}}>
-                  Founded in 2020 by visionary leader Ranwell Fatsani Mwale, Phaneroo Constructions Ltd
-                  began as a general contractor tackling challenging projects across Malawi.
-                  Today, we&apos;ve grown into a comprehensive construction solutions provider.
-                </p>
-                <p>
-                  We are strategically positioned to capitalize on Malawi&apos;s booming construction sector —
-                  offering everything from machine-manufactured building materials to full project management
-                  and engineering consultation.
-                </p>
+                <p>Founded in 2020 by visionary leader Ranwell Fatsani Mwale, Phaneroo Constructions Ltd began as a general contractor tackling challenging projects across Malawi. Today, we&apos;ve grown into a comprehensive construction solutions provider.</p>
+                <p>We are strategically positioned to capitalize on Malawi&apos;s booming construction sector — offering everything from machine-manufactured building materials to full project management and engineering consultation.</p>
                 <div className="values-grid">
                   {["Honesty","Integrity","Fairness","Professionalism"].map(v => (
                     <div className="value-chip" key={v}>{v}</div>
@@ -476,15 +538,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── SERVICES ── */}
+      {/* ══ SERVICES ══ */}
       <section className="services" id="services">
         <div className="section-inner">
           <Reveal>
             <div className="section-tag">What We Offer</div>
             <h2>Our Services</h2>
-            <p style={{color:"var(--gray)",marginTop:"0.75rem",maxWidth:560,lineHeight:1.75}}>
-              From foundations to finishing touches — your one-stop construction partner.
-            </p>
+            <p className="section-sub">From foundations to finishing touches — your one-stop construction partner in Malawi.</p>
           </Reveal>
           <div className="services-grid">
             {services.map((s, i) => (
@@ -500,26 +560,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── PRODUCTS ── */}
+      {/* ══ PRODUCTS ══ */}
       <section className="products" id="products">
         <div className="section-inner">
           <Reveal>
             <div className="section-tag">Our Products</div>
             <h2 style={{color:"white"}}>Premium Building Materials</h2>
-            <p className="products-intro">
-              Machinery-manufactured, highly rigid, vibration-resistant and highly durable.
-            </p>
+            <p className="products-intro">Machinery-manufactured, highly rigid, vibration-resistant and highly durable. Hover to explore.</p>
           </Reveal>
           <div className="products-grid">
             {[
-              { file:"blocks.jpg", title:"Concrete Blocks", icon:"🧱", desc:"Machine-manufactured, highly rigid and vibration-resistant. Available in multiple sizes." },
-              { file:"interlocking.jpg", title:"Interlocking Pavers", icon:"🔲", desc:"Diverse designs for driveways, walkways and outdoor spaces. Durable and environmentally friendly." },
+              { files:["blocks.jpg", "Concrete Blocks.jpeg"], title:"Concrete Blocks", desc:"Machine-manufactured, highly rigid and vibration-resistant. Available in multiple sizes for all construction needs." },
+              { files:["Interlocking Pavers 1.jpg", "Interlocking Pavers 2.jpg"], title:"Interlocking Pavers", desc:"Diverse designs for driveways, walkways and outdoor spaces. Durable, beautiful and environmentally friendly." },
             ].map((p, i) => (
               <Reveal key={p.title} delay={i * 150} direction="up">
                 <div className="product-card">
-                  <Image src={`/images/${p.file}`} alt={p.title} width={600} height={360} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                  <ProductImages files={p.files} alt={p.title} />
                   <div className="product-overlay">
-                    <div className="product-overlay-icon">{p.icon}</div>
                     <h3>{p.title}</h3>
                     <p>{p.desc}</p>
                   </div>
@@ -530,26 +587,43 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── PROJECTS ── */}
-      <section className="projects" id="projects">
+      {/* ══ MILESTONES ══ */}
+      <section className="milestones" id="milestones">
         <div className="section-inner">
           <Reveal>
-            <div className="section-tag">Track Record</div>
-            <h2>Notable Projects</h2>
-            <p style={{color:"var(--gray)",marginTop:"0.75rem",maxWidth:560,lineHeight:1.75}}>
-              From government contracts to institutional and commercial projects — our work speaks for itself.
-            </p>
+            <div className="section-tag">Our Journey</div>
+            <h2>Milestones</h2>
+            <p className="section-sub">From a bold idea in 2020 to a multi-million kwacha construction powerhouse — here is our story.</p>
           </Reveal>
-          <div className="projects-grid">
-            {projects.map((p, i) => (
-              <Reveal key={p.title} delay={i * 100} direction="up">
-                <div className="project-card">
-                  <Image src={`/images/${p.img}.jpg`} alt={p.title} width={600} height={340} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
-                  <div className="project-overlay">
-                    <div className="project-value">{p.value}</div>
-                    <h3>{p.title}</h3>
-                    <p>{p.desc}</p>
-                  </div>
+          <div className="timeline">
+            {milestones.map((m, i) => (
+              <Reveal key={m.year} delay={i * 80} direction={i % 2 === 0 ? "left" : "right"}>
+                <div className={`timeline-item ${i % 2 === 0 ? "timeline-left" : "timeline-right"}`}>
+                  {i % 2 === 0 ? (
+                    <>
+                      <div className="timeline-content">
+                        <h3>{m.title}</h3>
+                        <p>{m.desc}</p>
+                      </div>
+                      <div className="timeline-dot">
+                        <div className="timeline-dot-inner">{m.icon}</div>
+                        <div className="timeline-year">{m.year}</div>
+                      </div>
+                      <div className="timeline-spacer" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="timeline-spacer" />
+                      <div className="timeline-dot">
+                        <div className="timeline-dot-inner">{m.icon}</div>
+                        <div className="timeline-year">{m.year}</div>
+                      </div>
+                      <div className="timeline-content">
+                        <h3>{m.title}</h3>
+                        <p>{m.desc}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </Reveal>
             ))}
@@ -557,7 +631,83 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── WHY US ── */}
+      <section className="fixed-image-break" aria-label="Phaneroo construction materials">
+        <Reveal direction="up">
+          <div className="fixed-image-break-content">
+            <div className="section-tag">Built to Last</div>
+            <h2>Strong Foundations. Lasting Results.</h2>
+            <p>Quality materials and skilled workmanship for every project, from Lilongwe to communities across Malawi.</p>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ══ NEWS / UPDATES / VACANCIES ══ */}
+      <section className="news" id="news">
+        <div className="section-inner">
+          <Reveal>
+            <div className="section-tag">Stay Updated</div>
+            <h2>News &amp; Vacancies</h2>
+            <p className="section-sub">Latest updates from Phaneroo Constructions, and open positions to join our growing team.</p>
+          </Reveal>
+          <div className="news-tabs">
+            <button className={`news-tab ${activeNews === "news" ? "active" : ""}`} onClick={() => setActiveNews("news")}>📰 News &amp; Updates</button>
+            <button className={`news-tab ${activeNews === "vacancies" ? "active" : ""}`} onClick={() => setActiveNews("vacancies")}>💼 Vacancies</button>
+          </div>
+
+          {activeNews === "news" && (
+            <Reveal direction="up">
+              <div className="news-grid">
+                {newsItems.map((n) => (
+                  <div className="news-card" key={n.id}>
+                    <div className={`news-img ${n.image_url ? "has-image" : ""}`} style={n.image_url ? { backgroundImage:`url("${n.image_url}")` } : undefined}>
+                      <div className="news-img-placeholder">
+                        <span>📰</span>
+                        <p>Image coming soon</p>
+                      </div>
+                    </div>
+                    <div className="news-body">
+                      <div className="news-meta">
+                        <span className="news-tag">{n.category}</span>
+                        <span className="news-date">{new Date(n.published_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" })}</span>
+                      </div>
+                      <h3>{n.title}</h3>
+                      <p>{n.excerpt}</p>
+                      <Link className="news-link" href={`/news/${n.id}`}>Read more →</Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {!newsItems.length && <p className="coming-soon-note">{contentError ? "News is temporarily unavailable. Please check back shortly." : "No news has been published yet. Check back soon!"}</p>}
+            </Reveal>
+          )}
+
+          {activeNews === "vacancies" && (
+            <Reveal direction="up">
+              <div className="vacancies-list">
+                {vacancies.map((v) => (
+                  <div className="vacancy-card" key={v.id}>
+                    <div>
+                      <h3>{v.title}</h3>
+                      <div className="vacancy-meta">
+                        <span className="vacancy-pill type">{v.employment_type}</span>
+                        <span className="vacancy-pill location">📍 {v.location}</span>
+                      </div>
+                      <p style={{marginTop:"0.6rem"}}>{v.description}</p>
+                    </div>
+                    <div className="vacancy-actions">
+                      <Link className="vacancy-btn" href={`/vacancies/${v.id}`}>View details</Link>
+                      {v.application_email ? <a className="vacancy-btn" href={`mailto:${v.application_email}?subject=${encodeURIComponent(`Application: ${v.title}`)}`}>Apply Now</a> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {!vacancies.length && <p className="coming-soon-note">{contentError ? "Vacancies are temporarily unavailable. Please check back shortly." : "There are no open vacancies right now. Please check back soon."}</p>}
+            </Reveal>
+          )}
+        </div>
+      </section>
+
+      {/* ══ WHY US ══ */}
       <section className="why" id="why">
         <div className="section-inner">
           <div className="why-grid">
@@ -581,8 +731,7 @@ export default function Home() {
                 <cite>— Phaneroo Constructions Ltd</cite>
                 <div className="tagline-badge">Build with us. Buy from us.</div>
                 <div className="why-logo-wrap">
-                  <Image src="/logo.png" alt="Phaneroo Constructions" width={160} height={50}
-                    style={{ height:50, width:"auto", filter:"brightness(0) invert(1)", opacity:0.55 }} />
+                  <Image src="/logo-red-white.png" alt="Phaneroo Constructions" width={92} height={94} style={{ opacity:0.7 }} />
                 </div>
               </div>
             </Reveal>
@@ -590,7 +739,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── CONTACT ── */}
+      {/* ══ TEAM ══ */}
+      <section className="team" id="team">
+        <div className="section-inner">
+          <Reveal>
+            <div className="section-tag">Our People</div>
+            <h2>Meet the Team</h2>
+            <p className="team-sub">
+              The great minds behind every structure we build — dedicated professionals committed to making your vision possible.
+            </p>
+          </Reveal>
+          <div className="team-grid">
+            {team.map((member, i) => (
+              <Reveal key={i} delay={i * 80} direction="up">
+                <div className="team-card">
+                  {/* Photos: drop team1.jpg … team6.jpg into public/images/ */}
+                  <Image
+                    src={`/images/${member.img}`}
+                    alt={member.name}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 900px) 50vw, 33vw"
+                    style={{ objectFit:"cover", objectPosition:member.position }}
+                  />
+                  <div className="team-overlay">
+                    <div className="team-role">{member.role}</div>
+                    <div className="team-name">{member.name}</div>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ CONTACT ══ */}
       <section className="contact" id="contact">
         <div className="section-inner">
           <div className="contact-grid">
@@ -599,8 +781,7 @@ export default function Home() {
                 <div className="section-tag">Get In Touch</div>
                 <h2>Let&apos;s Build Something Great</h2>
                 <p className="contact-text" style={{marginTop:"1rem"}}>
-                  Ready to start your project? Whether it&apos;s a home, commercial facility, or you need
-                  quality building materials — we&apos;d love to hear from you.
+                  Ready to start your project? Whether it&apos;s a home, commercial facility, or you need quality building materials — we&apos;d love to hear from you.
                 </p>
                 {[
                   { icon:"📍", label:"Our Location", val:"Mwala CCAP Church Premises, Opposite Kamuzu Barracks Small Gate, Chilinde Newlines, Lilongwe" },
@@ -650,20 +831,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
+      {/* ══ FOOTER ══ */}
       <footer>
         <div className="footer-inner">
           <div className="footer-brand">
-            <Image src="/logo.png" alt="Phaneroo Constructions Ltd" width={160} height={48}
-              style={{ height:48, width:"auto", filter:"brightness(0) invert(1)" }} />
+            <Image src="/logo-red-white.png" alt="Phaneroo Constructions Ltd" width={82} height={84} />
             <p>The home of great minds in building. Together we can turn your dreams into reality — from Lilongwe to across Malawi.</p>
           </div>
           <div>
             <h4>Quick Links</h4>
             <ul>
-              {[["#about","About"],["#services","Services"],["#products","Products"],["#projects","Projects"],["#why","Why Us"],["#contact","Contact"]].map(([h,l]) => (
-                <li key={h}><a href={h}>{l}</a></li>
-              ))}
+              {navLinks.map(([h,l]) => <li key={h}><a href={h}>{l}</a></li>)}
             </ul>
           </div>
           <div>
