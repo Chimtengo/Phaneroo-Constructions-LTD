@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { services } from "@/lib/services";
 import { getPublicContent, supabaseConfigured, type NewsPost, type Vacancy } from "@/lib/supabase-api";
 
 /* ── Scroll-reveal hook ── */
@@ -105,13 +106,6 @@ export default function Home() {
     ["#home", "Home"], ["#services", "Services"], ["#products", "Products"],
     ["#milestones", "Milestones"], ["#news", "News"], ["#why", "Why Us"],
     ["#team", "Team"], ["#contact", "Contact"],
-  ];
-
-  const services = [
-    { icon: "🏗️", title: "Building Services", desc: "From residential homes to large commercial and industrial structures — we manage every phase from foundation to finishing." },
-    { icon: "🧱", title: "Construction Materials", desc: "Machine-manufactured concrete blocks and interlocking pavers, produced on-site to cut transport costs and ensure quality." },
-    { icon: "📐", title: "Construction Consultancy", desc: "Expert design input, engineering solutions, and project management services that turn visions into lasting structures." },
-    { icon: "💧", title: "Borehole Drilling", desc: "Professional borehole drilling and complete water installation services for residential, commercial and institutional clients." },
   ];
 
   const milestones = [
@@ -235,15 +229,16 @@ export default function Home() {
         .about-card p { font-size:1rem; font-weight:800; line-height:1.3; }
 
         /* ── SERVICES ── */
-        .services { background:white; }
+        .services { background:linear-gradient(135deg,#f7f9fc,#e9eff6); }
         .services-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1.5rem; margin-top:3rem; }
-        .service-card { border:2px solid var(--light); border-radius:10px; padding:2.25rem; transition:all 0.35s; cursor:default; position:relative; overflow:hidden; background:white; }
+        .service-card { display:block; border:1px solid rgba(255,255,255,0.8); border-radius:14px; padding:2.25rem; transition:all 0.35s; cursor:pointer; position:relative; overflow:hidden; text-decoration:none; background:rgba(255,255,255,0.58); box-shadow:0 10px 30px rgba(26,43,74,0.06),inset 0 1px 0 rgba(255,255,255,0.75); backdrop-filter:blur(14px); }
         .service-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--red); transform:scaleX(0); transform-origin:left; transition:transform 0.35s; }
-        .service-card:hover { border-color:transparent; box-shadow:0 12px 40px rgba(26,43,74,0.12); transform:translateY(-4px); }
+        .service-card:hover { border-color:rgba(255,255,255,0.95); box-shadow:0 18px 44px rgba(26,43,74,0.16); transform:translateY(-6px); }
         .service-card:hover::before { transform:scaleX(1); }
         .service-icon { font-size:2.8rem; margin-bottom:1.25rem; display:block; }
         .service-card h3 { font-size:1rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--navy); margin-bottom:0.75rem; }
         .service-card p { color:var(--gray); line-height:1.75; font-size:0.9rem; }
+        .service-link { display:inline-block; color:var(--red); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; font-weight:800; margin-top:1rem; }
 
         /* ── PRODUCTS ── */
         .products { background:var(--navy); }
@@ -549,11 +544,12 @@ export default function Home() {
           <div className="services-grid">
             {services.map((s, i) => (
               <Reveal key={s.title} delay={i * 100} direction="up">
-                <div className="service-card">
+                <Link className="service-card" href={`/services/${s.slug}`}>
                   <span className="service-icon">{s.icon}</span>
                   <h3>{s.title}</h3>
-                  <p>{s.desc}</p>
-                </div>
+                  <p>{s.description}</p>
+                  <span className="service-link">Explore service →</span>
+                </Link>
               </Reveal>
             ))}
           </div>
