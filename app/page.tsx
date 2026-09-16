@@ -783,7 +783,6 @@ export default function Home() {
                   { icon:"📍", label:"Our Location", val:"Mwala CCAP Church Premises, Opposite Kamuzu Barracks Small Gate, Chilinde Newlines, Lilongwe" },
                   { icon:"📞", label:"Call Us", val:"+265 997 112 169 / +265 888 977 069" },
                   { icon:"✉️", label:"Email Us", val:"phaneroocostructionltd@gmail.com" },
-                  { icon:"🏛️", label:"Registration", val:"COY-ZZFAK8 | T-TIN: 70609494" },
                 ].map(d => (
                   <div className="contact-detail" key={d.label}>
                     <div className="contact-icon">{d.icon}</div>
@@ -805,6 +804,10 @@ export default function Home() {
                 <div className="form-group">
                   <label>Phone Number</label>
                   <input type="tel" placeholder="+265 xxx xxx xxx" />
+                </div>
+                <div className="form-group">
+                  <label>Email Address</label>
+                  <input type="email" placeholder="your@email.com" />
                 </div>
                 <div className="form-group">
                   <label>Service Required</label>
