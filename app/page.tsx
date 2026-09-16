@@ -123,7 +123,7 @@ export default function Home() {
     { name: "Brian Zulanga", role: "Team Member", img: "Brian Zulanga.jpeg", position: "center 70%" },
     { name: "Enerst Mphande", role: "Team Member", img: "Enerst Mphande.jpeg", position: "center 70%" },
     { name: "Grace Kanjeza", role: "Team Member", img: "Grace Kanjeza.jpeg", position: "center top" },
-    { name: "Tracina", role: "Team Member", img: "Tracina.jpg", position: "center top" },
+    { name: "Tracine Magowa", role: "Team Member", img: "Tracina.jpg", position: "center top" },
     { name: "Uchizi Nkhoma", role: "Team Member", img: "Uchizi Nkhoma.jpeg", position: "center top" },
   ];
 
